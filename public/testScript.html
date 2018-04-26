@@ -1,0 +1,296 @@
+<html>
+  <title>半自动注册实名绑卡</title>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdn.bootcss.com/fetch/2.0.4/fetch.js"></script>
+
+    <style>
+      .main-box{
+        text-align: center;
+      }
+      .main-box>.input-box{
+        width: 500px;
+        margin: auto;
+        margin-top: 50px;
+      }
+      .main-box>.input-box>div{
+        width: 100%;
+        text-align: left;
+        margin-top: 10px;
+        font-size: 20px;
+        line-height: 30px;
+      }
+      .main-box>.input-box>div>span{
+        display: block;
+        float: left;
+        width: 150px;
+      }
+      .main-box>.input-box>div>input{
+        line-height: 30px;
+        width: 350px;
+        font-size: 20px;
+      }
+      .button-box{
+        margin-top: 20px;
+      }
+      .button-box>input{
+        font-size: 20px;
+        margin: 20px;
+        padding: 10px;
+        border-radius: 5px;
+        background: #ff9090;
+        color: #ffffff;
+      }
+    </style>
+    <script>
+      window.onload=()=>{
+        var app = new Vue({
+          el: '#app',
+          data(){
+            return {
+              mobile:'15989193565',
+              //邀请人手机号
+              mobile2:'',
+              password: 'a123456',
+              realName:'',
+              idCard:'',
+              bankCard:'',
+
+              baseUrl:'http://192.168.2.107:8777',
+
+              token:'',
+            }
+          },
+          methods: {
+            getRealName(){
+              let vm=this;
+              let options={};
+              fetch("/idCard", options).then(function(response) {
+                response.json().then((data)=>{
+                  vm.realName=data.idObj[0];
+                  vm.idCard=data.idObj[1];
+                  vm.bankCard=data.bankCard;
+                })
+              }, function(error) {
+                // 请求错误返回，error是返回错误得类型
+              })
+            },
+            //验证手机号码是否注册
+            mobileCheck(){
+              let vm=this;
+              fetch(this.baseUrl+"/usercenter/i/isexited/"+this.mobile).then(function(response) {
+                if(response.status!=200){
+                  alert("验证手机号码失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("验证手机号码失败："+data.msg);
+                    return;
+                  }
+
+                  if(data.data){
+                    //直接登录
+                    vm.login();
+                  }else{
+                    //注册
+                    vm.register();
+                  }
+
+                })
+              }, function(error) {
+                alert("验证手机号码失败："+error);
+              })
+            },
+
+            //登录
+            login(){
+              let vm=this;
+              let options={
+                userName:this.mobile,
+                passWord:this.password,
+                captcha:'9999',
+                loginFlag:1,//0:密码登录 1：验证码登录
+              };
+              fetch(this.baseUrl+"/usercenter/i/signin", {method: 'POST',body:JSON.stringify(options)}).then(function(response) {
+                if(response.status!=200){
+                  alert("登录失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("登录失败："+data.msg);
+                    return;
+                  }
+                  vm.token=data.data;
+
+                  vm.getEvaluationList();
+
+                })
+              }, function(error) {
+                alert("登录失败："+error);
+              })
+            },
+
+            //注册登录
+            register(){
+              let vm=this;
+              let options={
+                userName:this.mobile,
+                passWord:this.password,
+                captcha:'9999',
+                inviter:this.mobile2,
+              };
+              fetch(this.baseUrl+"/usercenter/i/signup", {method: 'POST',body:JSON.stringify(options)}).then(function(response) {
+                if(response.status!=200){
+                  alert("注册失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+
+                  if(data.code!=0){
+                    alert("注册失败："+data.msg);
+                    return;
+                  }
+                  vm.token=data.data;
+
+                  vm.getEvaluationList();
+
+                })
+              }, function(error) {
+                alert("注册失败："+error);
+              })
+            },
+
+            //自动获取测评
+            getEvaluationList(){
+              let vm=this;
+              fetch(this.baseUrl+"/usercenter/u/evaluation",{headers:{'x-token':vm.token}}).then(function(response) {
+                if(response.status!=200){
+                  alert("获取测评失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("获取测评失败："+data.msg);
+                    return;
+                  }
+                  let info=data.data;
+                  let idList=[];
+                  for(var i=0;i<info.length;i++){
+                    idList.push(info[i].answers[0].id);
+                  }
+
+                  vm.evaluation(idList);
+                })
+              }, function(error) {
+                alert("获取测评失败："+error);
+              })
+            },
+            //自动评测
+            evaluation(idList){
+              let vm=this;
+              fetch(this.baseUrl+"/usercenter/u/savaresult/evaluation", {method: 'POST',body:JSON.stringify(idList),headers:{'x-token':vm.token}}).then(function(response) {
+                if(response.status!=200){
+                  alert("自动评测失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("自动评测失败："+data.msg);
+                    return;
+                  }
+                })
+
+                vm.rechargePre();
+
+              }, function(error) {
+                alert("自动评测失败："+error);
+              })
+
+            },
+
+
+            //自动预充值
+            rechargePre(){
+              let vm=this;
+              let options={
+                accNo:this.bankCard,
+                amount:10000,
+                idCard:this.idCard,
+                idHolder:this.realName,
+                mobile:this.mobile
+              };
+              fetch(this.baseUrl+"/paymentCenter-payment/v1/payment/recharge/pre", {method: 'POST',body:JSON.stringify(options),headers:{'x-token':vm.token,"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
+                if(response.status!=200){
+                  alert("自动预充值失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("自动预充值失败："+data.msg);
+                    return;
+                  }
+                  let orderId=data.data;
+                  vm.rechargeSubmit(orderId);
+                })
+
+
+              }, function(error) {
+                alert("自动预充值失败："+error);
+              })
+
+            },
+            //自动充值
+            rechargeSubmit(orderId){
+              let vm=this;
+              let options={
+                smsCode:'000000',
+                orderId:orderId,
+              };
+              fetch(this.baseUrl+"/paymentCenter-payment/v1/payment/recharge/submit", {method: 'POST',body:JSON.stringify(options),headers:{'x-token':vm.token,"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
+                if(response.status!=200){
+                  alert("自动充值失败："+response.statusText);
+                  return;
+                }
+                response.json().then((data)=>{
+                  if(data.code!=0){
+                    alert("自动充值失败："+data.msg);
+                    return;
+                  }
+
+                  alert("成功！")
+                })
+
+
+              }, function(error) {
+                alert("自动充值失败："+error);
+              })
+
+            },
+
+
+          },
+
+        })
+      }
+
+    </script>
+  </head>
+  <body>
+    <div class="main-box" id="app">
+      <div class="input-box">
+        <div><span>手机号码：</span><input type="text" v-model="mobile"></div>
+        <div><span>邀请人手机号:</span><input type="text" v-model="mobile2"></div>
+        <div><span>密码:</span><input type="text" v-model="password"></div>
+        <div><span>姓名:</span><input type="text" v-model="realName"></div>
+        <div><span>身份证号码:</span><input type="text" v-model="idCard"></div>
+        <div><span>银行卡:</span><input type="text" v-model="bankCard"></div>
+      </div>
+      <div class="button-box">
+        <input type="button" value="一键生成实名绑卡信息" @click="getRealName()">
+        <input type="button" value="一键注册实名绑卡充值评测" @click="mobileCheck">
+      </div>
+    </div>
+  </body>
+</html>
