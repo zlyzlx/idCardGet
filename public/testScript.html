@@ -48,7 +48,7 @@
           el: '#app',
           data(){
             return {
-              mobile:'15989193565',
+              mobile:'',
               //邀请人手机号
               mobile2:'',
               password: 'a123456',
@@ -78,7 +78,7 @@
             //验证手机号码是否注册
             mobileCheck(){
               let vm=this;
-              fetch(this.baseUrl+"/usercenter/i/isexited/"+this.mobile).then(function(response) {
+              fetch(this.baseUrl+"/usercenter/i/isexited/"+this.mobile,{headers:{"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
                 if(response.status!=200){
                   alert("验证手机号码失败："+response.statusText);
                   return;
@@ -112,7 +112,7 @@
                 captcha:'9999',
                 loginFlag:1,//0:密码登录 1：验证码登录
               };
-              fetch(this.baseUrl+"/usercenter/i/signin", {method: 'POST',body:JSON.stringify(options)}).then(function(response) {
+              fetch(this.baseUrl+"/usercenter/i/signin", {method: 'POST',body:JSON.stringify(options),headers:{"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
                 if(response.status!=200){
                   alert("登录失败："+response.statusText);
                   return;
@@ -141,7 +141,7 @@
                 captcha:'9999',
                 inviter:this.mobile2,
               };
-              fetch(this.baseUrl+"/usercenter/i/signup", {method: 'POST',body:JSON.stringify(options)}).then(function(response) {
+              fetch(this.baseUrl+"/usercenter/i/signup", {method: 'POST',body:JSON.stringify(options),headers:{"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
                 if(response.status!=200){
                   alert("注册失败："+response.statusText);
                   return;
@@ -165,7 +165,7 @@
             //自动获取测评
             getEvaluationList(){
               let vm=this;
-              fetch(this.baseUrl+"/usercenter/u/evaluation",{headers:{'x-token':vm.token}}).then(function(response) {
+              fetch(this.baseUrl+"/usercenter/u/evaluation",{headers:{'x-token':vm.token,"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
                 if(response.status!=200){
                   alert("获取测评失败："+response.statusText);
                   return;
@@ -190,7 +190,7 @@
             //自动评测
             evaluation(idList){
               let vm=this;
-              fetch(this.baseUrl+"/usercenter/u/savaresult/evaluation", {method: 'POST',body:JSON.stringify(idList),headers:{'x-token':vm.token}}).then(function(response) {
+              fetch(this.baseUrl+"/usercenter/u/savaresult/evaluation", {method: 'POST',body:JSON.stringify(idList),headers:{'x-token':vm.token,"Content-Type" : 'application/json;charset=UTF-8'}}).then(function(response) {
                 if(response.status!=200){
                   alert("自动评测失败："+response.statusText);
                   return;
